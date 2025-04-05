@@ -5,7 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using AspNetCoreErrorKit.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -17,32 +19,38 @@ namespace AspNetCoreErrorKit.ExceptionHandler
         private readonly ILogger<ErrorResponseFilterAttribute> _logger;
         private readonly IOptions<ErrorHandlingOptions> _options;
 
-        public ErrorResponseFilterAttribute(ILogger<ErrorResponseFilterAttribute> logger, IOptions<ErrorHandlingOptions> options)
+        public string? CustomErrorCodeGeneratorName { get; set; }
+        public string? ShouldLogExceptionName { get; set; }
+
+        public ErrorResponseFilterAttribute()
         {
-            _logger = logger;
-            _options = options;
+            _logger = ServiceLocator.Instance?.GetRequiredService<ILogger<ErrorResponseFilterAttribute>>()
+                      ?? throw new InvalidOperationException("Logger not found");
+            _options = ServiceLocator.Instance?.GetRequiredService<IOptions<ErrorHandlingOptions>>()
+                       ?? throw new InvalidOperationException("Options not found");
         }
 
         public override void OnException(ExceptionContext context)
         {
             var ex = context.Exception;
 
-            if (_options.Value.LogExceptions && (_options.Value.ShouldLogException?.Invoke(ex) ?? true))
+            var customErrorCodeGenerator = GetCustomErrorCodeGenerator(context);
+            var shouldLogException = GetShouldLogException(context);
+
+            bool shouldLog = shouldLogException?.Invoke(ex) ?? _options.Value.ShouldLogException?.Invoke(ex) ?? true;
+            if (_options.Value.LogExceptions && shouldLog)
             {
                 _logger.LogError(ex, "Unhandled Exception caught in ErrorResponseFilterAttribute");
             }
 
-            int errorCode = _options.Value.CustomErrorCodeGenerator?.Invoke(ex) ?? 500;
+            int errorCode = customErrorCodeGenerator?.Invoke(ex) ?? _options.Value.CustomErrorCodeGenerator?.Invoke(ex) ?? 500;
 
-            // If RFC 7807 is enabled, return a ProblemDetails response.
             if (_options.Value.UseProblemDetails)
             {
                 var problemDetails = new ProblemDetails
                 {
                     Type = "https://httpstatuses.com/" + errorCode,
-                    Title = (errorCode >= 500)
-                        ? "Internal Server Error"
-                        : "A problem occurred",
+                    Title = (errorCode >= 500) ? "Internal Server Error" : "A problem occurred",
                     Status = errorCode,
                     Detail = _options.Value.EnableDetailedErrors ? ex.Message : _options.Value.DefaultErrorMessage,
                     Instance = context.HttpContext.Request.Path
@@ -55,7 +63,6 @@ namespace AspNetCoreErrorKit.ExceptionHandler
             }
             else
             {
-                // Otherwise, return a custom error payload.
                 var errorResponse = new ErrorResponse
                 {
                     ReferenceId = Guid.NewGuid().ToString(),
@@ -70,8 +77,64 @@ namespace AspNetCoreErrorKit.ExceptionHandler
                 };
             }
 
-            // Optionally set ExceptionHandled to true so that it short-circuits further processing.
             context.ExceptionHandled = true;
+        }
+
+        private Func<Exception, int>? GetCustomErrorCodeGenerator(ExceptionContext context)
+        {
+            if (CustomErrorCodeGeneratorName == null) return null;
+
+            if (context.ActionDescriptor is ControllerActionDescriptor controllerActionDescriptor)
+            {
+                var controllerType = controllerActionDescriptor.ControllerTypeInfo.AsType();
+                if (controllerType != null)
+                {
+                    var method = controllerType.GetMethod(CustomErrorCodeGeneratorName,
+                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+
+                    if (method != null)
+                    {
+                        return (Func<Exception, int>)Delegate.CreateDelegate(typeof(Func<Exception, int>), method);
+                    }
+                }
+            }
+
+            // Fallback logic for non-controller classes
+            var type = context.ActionDescriptor.GetType();
+            var fallbackMethod = type.GetMethod(CustomErrorCodeGeneratorName,
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+
+            return fallbackMethod != null
+                ? (Func<Exception, int>)Delegate.CreateDelegate(typeof(Func<Exception, int>), fallbackMethod)
+                : null;
+        }
+
+        private Func<Exception, bool>? GetShouldLogException(ExceptionContext context)
+        {
+            if (ShouldLogExceptionName == null) return null;
+
+            if (context.ActionDescriptor is ControllerActionDescriptor controllerActionDescriptor)
+            {
+                var controllerType = controllerActionDescriptor.ControllerTypeInfo.AsType();
+                if (controllerType != null)
+                {
+                    var method = controllerType.GetMethod(ShouldLogExceptionName, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+
+                    if (method != null)
+                    {
+                        return (Func<Exception, bool>)Delegate.CreateDelegate(typeof(Func<Exception, bool>), method);
+                    }
+                }
+            }
+
+            // Fallback logic for non-controller classes
+            var type = context.ActionDescriptor.GetType();
+            var fallbackMethod = type.GetMethod(ShouldLogExceptionName,
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+
+            return fallbackMethod != null
+                ? (Func<Exception, bool>)Delegate.CreateDelegate(typeof(Func<Exception, bool>), fallbackMethod)
+                : null;
         }
     }
 }

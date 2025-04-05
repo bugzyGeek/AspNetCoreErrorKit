@@ -50,6 +50,7 @@ namespace AspNetCoreErrorKit
         /// <returns>The updated IApplicationBuilder.</returns>
         public static IApplicationBuilder UseGlobalExceptionMiddleware(this IApplicationBuilder app)
         {
+            ServiceLocator.Instance = app.ApplicationServices;
             return app.UseMiddleware<GlobalExceptionMiddleware>();
         }
     }
