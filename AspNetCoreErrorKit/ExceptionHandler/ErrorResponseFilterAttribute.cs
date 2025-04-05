@@ -84,57 +84,38 @@ namespace AspNetCoreErrorKit.ExceptionHandler
         {
             if (CustomErrorCodeGeneratorName == null) return null;
 
-            if (context.ActionDescriptor is ControllerActionDescriptor controllerActionDescriptor)
-            {
-                var controllerType = controllerActionDescriptor.ControllerTypeInfo.AsType();
-                if (controllerType != null)
-                {
-                    var method = controllerType.GetMethod(CustomErrorCodeGeneratorName,
-                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+            var controllerActionDescriptor = context.ActionDescriptor as ControllerActionDescriptor;
+            if (controllerActionDescriptor == null) return null;
 
-                    if (method != null)
-                    {
-                        return (Func<Exception, int>)Delegate.CreateDelegate(typeof(Func<Exception, int>), method);
-                    }
-                }
-            }
+            var controllerType = controllerActionDescriptor.ControllerTypeInfo.AsType();
+            if (controllerType == null) return null;
 
-            // Fallback logic for non-controller classes
-            var type = context.ActionDescriptor.GetType();
-            var fallbackMethod = type.GetMethod(CustomErrorCodeGeneratorName,
+            var method = controllerType.GetMethod(CustomErrorCodeGeneratorName,
                 System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
 
-            return fallbackMethod != null
-                ? (Func<Exception, int>)Delegate.CreateDelegate(typeof(Func<Exception, int>), fallbackMethod)
-                : null;
+            if (method == null) return null;
+
+            return (Func<Exception, int>)Delegate.CreateDelegate(typeof(Func<Exception, int>), method);
+
+
+
         }
 
         private Func<Exception, bool>? GetShouldLogException(ExceptionContext context)
         {
             if (ShouldLogExceptionName == null) return null;
 
-            if (context.ActionDescriptor is ControllerActionDescriptor controllerActionDescriptor)
-            {
-                var controllerType = controllerActionDescriptor.ControllerTypeInfo.AsType();
-                if (controllerType != null)
-                {
-                    var method = controllerType.GetMethod(ShouldLogExceptionName, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+            var controllerActionDescriptor = context.ActionDescriptor as ControllerActionDescriptor;
+            if (controllerActionDescriptor == null) return null;
 
-                    if (method != null)
-                    {
-                        return (Func<Exception, bool>)Delegate.CreateDelegate(typeof(Func<Exception, bool>), method);
-                    }
-                }
-            }
+            var controllerType = controllerActionDescriptor.ControllerTypeInfo.AsType();
+            if (controllerType == null) return null;
 
-            // Fallback logic for non-controller classes
-            var type = context.ActionDescriptor.GetType();
-            var fallbackMethod = type.GetMethod(ShouldLogExceptionName,
-                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+            var method = controllerType.GetMethod(ShouldLogExceptionName, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
 
-            return fallbackMethod != null
-                ? (Func<Exception, bool>)Delegate.CreateDelegate(typeof(Func<Exception, bool>), fallbackMethod)
-                : null;
+            if (method == null) return null;
+
+            return (Func<Exception, bool>)Delegate.CreateDelegate(typeof(Func<Exception, bool>), method);
         }
     }
 }

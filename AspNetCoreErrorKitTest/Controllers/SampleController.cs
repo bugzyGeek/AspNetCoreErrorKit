@@ -1,6 +1,5 @@
 ﻿using AspNetCoreErrorKit.ExceptionHandler;
 using AspNetCoreErrorKit.Models;
-using AspNetCoreErrorKitTest.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -36,22 +35,6 @@ namespace AspNetCoreErrorKitTest.Controllers
         public IActionResult MixedException()
         {
             throw new Exception("Mixed exception");
-        }
-
-        [HttpGet("class-excption")]
-        public IActionResult ClassException()
-        {
-            new ExceptionService().GetClassException();
-
-            return Ok();
-        }
-
-        [HttpGet("method-excption")]
-        public IActionResult MethodException()
-        {
-            new ExceptionService().GetMethodException();
-
-            return Ok();
         }
 
         public static int CustomErrorCodeGenerator(Exception ex)
