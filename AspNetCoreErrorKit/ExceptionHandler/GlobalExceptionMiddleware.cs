@@ -1,13 +1,10 @@
-﻿using System.Text.Json;
-using AspNetCoreErrorKit.Models;
+﻿using AspNetCoreErrorKit.Models;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace AspNetCoreErrorKit.ExceptionHandler;
 
-internal class ExceptionHandlingMiddleware(
+public class ExceptionHandlingMiddleware(
     RequestDelegate next,
     ILogger<ExceptionHandlingMiddleware> logger,
     ExceptionHandlingOptions options)
@@ -17,7 +14,7 @@ internal class ExceptionHandlingMiddleware(
     private readonly ExceptionHandlingOptions _options = options;
 
     // Helper method to determine the inheritance "distance" between the registered Exception type and the thrown exception.
-    internal static int GetInheritanceDistance(Type baseType, Type type)
+    public static int GetInheritanceDistance(Type baseType, Type type)
     {
         int distance = 0;
         while (type != null && type != baseType)

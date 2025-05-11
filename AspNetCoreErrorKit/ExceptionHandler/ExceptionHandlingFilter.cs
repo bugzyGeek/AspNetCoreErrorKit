@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AspNetCoreErrorKit.Models;
+﻿using AspNetCoreErrorKit.Models;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,7 +38,7 @@ namespace AspNetCoreErrorKit.ExceptionHandler
             if (context.ActionDescriptor is ControllerActionDescriptor controllerActionDescriptor && typeof(ICustomExceptionHandlerProvider).IsAssignableFrom(controllerActionDescriptor.ControllerTypeInfo))
             {
 
-                var handlerProvider = (ICustomExceptionHandlerProvider)context.HttpContext.RequestServices.GetService(controllerActionDescriptor.ControllerTypeInfo);
+                var handlerProvider = context.HttpContext.RequestServices.GetService(controllerActionDescriptor.ControllerTypeInfo) as ICustomExceptionHandlerProvider;
                 if (handlerProvider != null)
                 {
                     var handlerMappings = handlerProvider.GetCustomHandlerMappings();
@@ -59,6 +53,7 @@ namespace AspNetCoreErrorKit.ExceptionHandler
                         if (matchingHandler.Key != null)
                         {
                             var response = await matchingHandler.Value(context.Exception);
+                            response.Detail = _options.IncludeExceptionDetails ? context.Exception.ToString() : response.Detail;
                             context.ExceptionHandled = true;
                             await context.HttpContext.Response.WriteAsJsonAsync(response);
                             return;
