@@ -20,6 +20,8 @@ public static class ServiceCollectionExtensions
     {
         var options = new ExceptionHandlingOptions();
         configure(options);
+        builder.ApplicationServices.GetRequiredService<IServiceCollection>()
+            .AddSingleton(options);
         return builder.UseMiddleware<ExceptionHandlingMiddleware>(options);
     }
 }
