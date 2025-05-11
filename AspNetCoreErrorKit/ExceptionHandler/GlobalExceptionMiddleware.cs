@@ -7,20 +7,32 @@ using Microsoft.Extensions.Options;
 
 namespace AspNetCoreErrorKit.ExceptionHandler;
 
-internal class GlobalExceptionMiddleware
+internal class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly ILogger<GlobalExceptionMiddleware> _logger;
-    private readonly IOptions<ErrorHandlingOptions> _options;
+    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    private readonly ExceptionHandlingOptions _options;
 
-    public GlobalExceptionMiddleware(
+    public ExceptionHandlingMiddleware(
         RequestDelegate next,
-        ILogger<GlobalExceptionMiddleware> logger,
-        IOptions<ErrorHandlingOptions> options)
+        ILogger<ExceptionHandlingMiddleware> logger,
+        ExceptionHandlingOptions options)
     {
         _next = next;
         _logger = logger;
         _options = options;
+    }
+
+    // Helper method to determine the inheritance "distance" between the registered Exception type and the thrown exception.
+    private static int GetInheritanceDistance(Type baseType, Type type)
+    {
+        int distance = 0;
+        while (type != null && type != baseType)
+        {
+            type = type.BaseType;
+            distance++;
+        }
+        return (type == null ? int.MaxValue : distance);
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -31,40 +43,34 @@ internal class GlobalExceptionMiddleware
         }
         catch (Exception ex)
         {
-            var endpoint = context.GetEndpoint();
-            if (endpoint?.Metadata.GetMetadata<ErrorResponseFilterAttribute>() != null)
+            // Asynchronously log the exception.
+            await _options.AsyncLogger(_logger, ex);
+
+            // Integrate telemetry features if a telemetry tracker has been provided.
+            if (_options.TelemetryTracker != null)
             {
-                throw;
+                await _options.TelemetryTracker(context, ex);
             }
 
-            if (_options.Value.LogExceptions && (_options.Value.ShouldLogException?.Invoke(ex) ?? true))
+            // Hierarchical handling: choose the most specific custom handler if available.
+            var exceptionType = ex.GetType();
+            var matchingHandler = _options.CustomHandlers
+                .Where(handler => handler.Key.IsAssignableFrom(exceptionType))
+                .OrderBy(handler => GetInheritanceDistance(handler.Key, exceptionType))
+                .FirstOrDefault();
+
+            if (matchingHandler.Key != null)
             {
-                _logger.LogError(ex, "Unhandled Exception caught in GlobalExceptionMiddleware");
+                var response = await matchingHandler.Value(ex);
+                response.Detail = _options.IncludeExceptionDetails ? ex.ToString() : response.Detail;
+                await context.Response.WriteAsJsonAsync(response);
             }
-
-            int errorCode = _options.Value.CustomErrorCodeGenerator?.Invoke(ex) ?? 500;
-
-            context.Response.StatusCode = errorCode;
-            context.Response.ContentType = _options.Value.UseProblemDetails ? "application/problem+json" : "application/json";
-
-            var response = _options.Value.UseProblemDetails
-                ? JsonSerializer.Serialize(new ProblemDetails
-                {
-                    Type = $"https://httpstatuses.com/{errorCode}",
-                    Title = errorCode >= 500 ? "Internal Server Error" : "A problem occurred",
-                    Status = errorCode,
-                    Detail = _options.Value.EnableDetailedErrors ? ex.Message : _options.Value.DefaultErrorMessage,
-                    Instance = context.Request.Path
-                })
-                : JsonSerializer.Serialize(new ErrorResponse
-                {
-                    ReferenceId = Guid.NewGuid().ToString(),
-                    ErrorCode = errorCode.ToString(),
-                    UserInstructions = _options.Value.DefaultErrorMessage,
-                    Message = _options.Value.EnableDetailedErrors ? ex.Message : _options.Value.DefaultErrorMessage
-                });
-
-            await context.Response.WriteAsync(response);
+            else
+            {
+                // Use the default handler while passing the options so it can decide on detail level.
+                await _options.DefaultHandler(context, ex, _options);
+            }
         }
     }
 }
+
