@@ -97,4 +97,5 @@ AspNetCoreErrorKit is compatible with:
 
 ## License
 
-MIT
+[MIT](https://licenses.nuget.org/MIT)
+

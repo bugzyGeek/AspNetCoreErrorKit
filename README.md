@@ -41,12 +41,11 @@ AspNetCoreErrorKit is compatible with:
 ## Installation
 
 Install via NuGet:
+- Or use the NuGet Package Manager in Visual Studio.
 
 ```bash
 dotnet add package AspNetCoreErrorKit
 ```
-
-Or use the NuGet Package Manager in Visual Studio.
 
 ---
 

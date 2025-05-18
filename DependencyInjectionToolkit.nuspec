@@ -9,7 +9,6 @@
     <readme>PACKAGEREADME.md</readme>
     <copyright>Copyright © 2025 Nana Akwasi Aforo</copyright>
     <license type="expression">MIT</license>
-    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
     <icon>AspNetCoreErrorKit.png</icon>
     <projectUrl>https://github.com/bugzyGeek/AspNetCoreErrorKit</projectUrl>
     <description>

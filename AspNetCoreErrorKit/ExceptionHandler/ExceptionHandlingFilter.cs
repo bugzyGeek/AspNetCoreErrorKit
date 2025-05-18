@@ -50,7 +50,7 @@ namespace AspNetCoreErrorKit.ExceptionHandler
                         .OrderBy(handler => ExceptionHandlingMiddleware.GetInheritanceDistance(handler.Key, exceptionType))
                         .FirstOrDefault();
 
-                        if (matchingHandler.Key != null)
+                        if (matchingHandler.Key != null && matchingHandler.Value != null)
                         {
                             var response = await matchingHandler.Value(context.Exception);
                             response.Detail = _options.IncludeExceptionDetails ? context.Exception.ToString() : response.Detail;
