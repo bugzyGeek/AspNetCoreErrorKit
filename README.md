@@ -1,6 +1,6 @@
 # AspNetCoreErrorKit
 
-AspNetCoreErrorKit is a C# library that brings robust, flexible exception handling to your ASP.NET Core (.NET 8) applications. It provides global middleware and filter-based exception handling, custom error responses, async logging, and telemetry integration—all with easy setup and full extensibility.
+AspNetCoreErrorKit is a C# library that brings robust, flexible exception handling to your ASP.NET Core (.NET 8) applications. It provides global middleware and filter-based exception handling, custom error responses, async logging, and telemetry integration all with easy setup and full extensibility.
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/bugzyGeek/AspNetCoreErrorKit)
 ![Nuget](https://img.shields.io/nuget/v/AspNetCoreErrorKit)

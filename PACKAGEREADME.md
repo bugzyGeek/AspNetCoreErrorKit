@@ -45,7 +45,7 @@ Or use `[ServiceFilter(typeof(ExceptionHandlingFilter))]` on controllers/actions
 
 In your pipeline:
 
-```cssharp
+```csharp
 app.UseGlobalExceptionMiddleware();
 app.MapControllers();
 app.Run();
