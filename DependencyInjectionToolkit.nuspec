@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>AspNetCoreErrorKit</id>
+    <version>1.0.0</version>
+    <title>AspNetCoreErrorKit - ASP.NET Core Exception Handling Toolkit</title>
+    <authors>Nana Akwasi Aforo</authors>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <readme>PACKAGEREADME.md</readme>
+    <copyright>Copyright © 2025 Nana Akwasi Aforo</copyright>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>AspNetCoreErrorKit.png</icon>
+    <projectUrl>https://github.com/bugzyGeek/AspNetCoreErrorKit</projectUrl>
+    <description>
+      AspNetCoreErrorKit is a flexible, modern exception handling toolkit for ASP.NET Core (.NET 8). 
+      It provides global middleware and filter-based exception handling, custom error responses, async logging, and telemetry integration.
+      Easily plug into your pipeline for robust error management in your web APIs and MVC applications.
+    </description>
+    <tags>aspnetcore exception-handling middleware filter error-handling logging telemetry .net8</tags>
+    <releaseNotes>
+      Initial release: 
+      - Exception handling middleware and filter
+      - Custom error handlers
+      - Async logging and telemetry support
+      - Easy DI and extension methods
+    </releaseNotes>
+    <repository type="git" url="https://github.com/bugzyGeek/AspNetCoreErrorKit"/>
+	  <dependencies>
+		  <group targetFramework="net8.0">
+			  <dependency id="Microsoft.AspNetCore.Http.Abstractions" version="2.3.0" />
+			  <dependency id="Microsoft.AspNetCore.Mvc.Core" version="2.3.0" />
+			  <dependency id="Microsoft.Extensions.Configuration.Abstractions" version="9.0.3" />
+			  <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="9.0.3" />
+			  <dependency id="Microsoft.Extensions.Logging.Abstractions" version="9.0.3" />
+			  <dependency id="Microsoft.Extensions.Options" version="9.0.3" />
+			  <dependency id="Microsoft.Extensions.Options.ConfigurationExtensions" version="9.0.3" />
+			  <dependency id="Newtonsoft.Json" version="13.0.3" />
+		  </group>
+	  </dependencies>
+  </metadata>
+  <files>
+    <file src="PACKAGEREADME.md" target=""/>
+    <file src="AspNetCoreErrorKit.png" target="AspNetCoreErrorKit.png"/>
+  </files>
+</package>
