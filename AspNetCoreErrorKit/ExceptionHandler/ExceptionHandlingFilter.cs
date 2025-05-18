@@ -45,12 +45,12 @@ namespace AspNetCoreErrorKit.ExceptionHandler
                     if (handlerMappings.TryGetValue(_handlerKey, out var exceptionHandlers))
                     {
                         var exceptionType = context.Exception.GetType();
-                        var matchingHandler = _options.CustomHandlers
+                        var matchingHandler = exceptionHandlers
                         .Where(handler => handler.Key.IsAssignableFrom(exceptionType))
                         .OrderBy(handler => ExceptionHandlingMiddleware.GetInheritanceDistance(handler.Key, exceptionType))
                         .FirstOrDefault();
 
-                        if (matchingHandler.Key != null)
+                        if (matchingHandler.Key != null && matchingHandler.Value != null)
                         {
                             var response = await matchingHandler.Value(context.Exception);
                             response.Detail = _options.IncludeExceptionDetails ? context.Exception.ToString() : response.Detail;

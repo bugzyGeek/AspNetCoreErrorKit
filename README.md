@@ -1,138 +1,151 @@
-
 # AspNetCoreErrorKit
 
-AspNetCoreErrorKit is a robust and extensible library for handling errors and exceptions in ASP.NET Core applications. It provides middleware and attributes for centralized and customizable error handling, including support for structured responses and RFC 7807-compliant `ProblemDetails`.
+AspNetCoreErrorKit is a C# library that brings robust, flexible exception handling to your ASP.NET Core (.NET 8) applications. It provides global middleware and filter-based exception handling, custom error responses, async logging, and telemetry integration all with easy setup and full extensibility.
+
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/bugzyGeek/AspNetCoreErrorKit)
+![Nuget](https://img.shields.io/nuget/v/AspNetCoreErrorKit)
+![License](https://img.shields.io/github/license/bugzyGeek/AspNetCoreErrorKit)
+
+---
+
+## Why use AspNetCoreErrorKit?
+
+Exception handling is critical for building reliable, maintainable, and secure web APIs. AspNetCoreErrorKit lets you:
+
+- Centralize error handling with middleware or filters
+- Return consistent, customizable error responses
+- Integrate async logging and telemetry
+- Easily add or override handlers for specific exception types
+- Use per-controller or per-action exception strategies
+
+---
 
 ## Features
 
-- **Global Exception Middleware**: Catch and handle all unhandled exceptions globally in the request pipeline.
-- **Action-Level Error Filter**: Fine-grained control over error responses at the controller or action level using the `ErrorResponseFilterAttribute`.
-- **Customizable Responses**:
-  - Standard error responses (`ErrorResponse`).
-  - RFC 7807-compliant `ProblemDetails`.
-- **Configuration Options**:
-  - Toggle detailed error messages.
-  - Customize default error messages.
-  - Delegate-based error code generation and conditional logging.
-- **Extensibility**: Dynamically resolve custom methods for error code generation and exception logging conditions.
+- **Global Exception Handling Middleware**: Catch and handle unhandled exceptions across your entire ASP.NET Core pipeline.
+- **Exception Handling Filter**: Attribute-based, per-controller/action exception handling for fine-grained control.
+- **Custom Exception Handlers**: Map exception types to custom `ProblemDetails` responses.
+- **Async Logging & Telemetry**: Plug in your own async logger and telemetry tracker.
+- **Easy Integration**: Extension methods for quick setup in your `Program.cs`.
+
+---
+
+## Version Compatibility
+
+AspNetCoreErrorKit is compatible with:
+
+- **.NET 8** (recommended)
+
+---
 
 ## Installation
 
-Add the NuGet package (coming soon) to your project:
+Install via NuGet:
+- Or use the NuGet Package Manager in Visual Studio.
 
 ```bash
 dotnet add package AspNetCoreErrorKit
 ```
 
-## Usage
+---
 
-### 1. Configure Services
+## Getting Started
 
-In your `Startup.cs` or `Program.cs`, register AspNetCoreErrorKit services in the DI container:
+### 1. Register Exception Handling Options
+
+Add in your `Program.cs`:
 
 ```csharp
-public void ConfigureServices(IServiceCollection services)
+using AspNetCoreErrorKit;
+
+builder.Services.AddExceptionHandlingOptions(options =>
 {
-    services.AddControllers();
-    services.AddAspNetCoreErrorKit(
-        Configuration,
-        customErrorCodeGenerator: ex => ex is ArgumentException ? 400 : 500,
-        shouldLogException: ex => !(ex is ArgumentException)
-    );
-}
+    options.IncludeExceptionDetails = builder.Environment.IsDevelopment();
+    options.CustomHandlers[typeof(InvalidOperationException)] = async (ex) =>
+        new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Title = "Invalid Operation",
+            Detail = ex.Message
+        };
+    // Configure AsyncLogger, TelemetryTracker, DefaultHandler as needed
+});
 ```
 
-### 2. Enable Global Middleware
 
-Register the middleware in your application's request pipeline:
+### 2. Add the Exception Handling Filter (Optional)
+
+Register globally or per-controller/action:
 
 ```csharp
-public void Configure(IApplicationBuilder app)
+builder.Services.AddControllers(options =>
 {
-    app.UseGlobalExceptionMiddleware();
-    app.UseRouting();
-    app.UseEndpoints(endpoints =>
-    {
-        endpoints.MapControllers();
-    });
-}
+    options.Filters.Add<ExceptionHandlingFilter>();
+});
 ```
 
-### 3. Use the Filter Attribute
+Or use `[ServiceFilter(typeof(ExceptionHandlingFilter))]` on controllers/actions.
 
-Decorate controllers or actions with the `ErrorResponseFilterAttribute` to enable action-specific exception handling:
+### 3. Add the Exception Handling Middleware
+
+In your pipeline:
 
 ```csharp
-[ApiController]
-[Route("api/[controller]")]
-[ErrorResponseFilter(CustomErrorCodeGeneratorName = "CustomErrorCodeGenerator")]
-public class SampleController : ControllerBase
+app.UseGlobalExceptionMiddleware(); 
+app.MapControllers(); 
+app.Run();
+```
+
+---
+
+## Advanced: Custom Exception Handler Providers
+
+Implement `ICustomExceptionHandlerProvider` on your controller for per-controller exception handler mappings.
+
+```csharp
+public class MyController : ControllerBase, ICustomExceptionHandlerProvider
 {
-    [HttpGet("test-error")]
-    public IActionResult TestError()
+    public IDictionary<string, IDictionary<Type, Func<Exception, Task<ProblemDetails>>>> GetCustomHandlerMappings()
     {
-        throw new Exception("Test error");
+        return new Dictionary<string, IDictionary<Type, Func<Exception, Task<ProblemDetails>>>>
+        {
+            ["myKey"] = new Dictionary<Type, Func<Exception, Task<ProblemDetails>>>
+            {
+                [typeof(ArgumentNullException)] = async (ex) => new ProblemDetails
+                {
+                    Title = "Argument Null",
+                    Detail = ex.Message
+                }
+            }
+        };
     }
-
-    public static int CustomErrorCodeGenerator(Exception ex)
-    {
-        return 400;
-    }
 }
+
 ```
 
-### 4. Configuration Options
+---
 
-Use the `ErrorHandlingOptions` class to customize behavior. Configure options in `appsettings.json` under the desired section name (default: `ErrorHandlingOptions`):
+## Real-World Use Cases
 
-```json
-"ErrorHandlingOptions": {
-  "DefaultErrorMessage": "Oops! Something went wrong.",
-  "EnableDetailedErrors": false,
-  "LogExceptions": true,
-  "UseProblemDetails": true
-}
-```
+- **Web APIs**: Centralize and standardize error handling in ASP.NET Core APIs.
+- **Microservices**: Ensure consistent error responses and logging across services.
+- **Enterprise Apps**: Integrate with telemetry and monitoring for production diagnostics.
+- **Testing**: Easily mock and verify error handling in unit/integration tests.
 
-## Response Formats
+---
 
-### Standard Error Response
+## Further Information
 
-When `UseProblemDetails` is set to `false`, the error response follows this format:
-```json
-{
-  "referenceId": "12345",
-  "errorCode": "500",
-  "message": "An unexpected error occurred. Please try again later.",
-  "userInstructions": "An unexpected error occurred. Please try again later."
-}
-```
+- [Documentation](https://github.com/bugzyGeek/AspNetCoreErrorKit/wiki)
+- [GitHub Repository](https://github.com/bugzyGeek/AspNetCoreErrorKit)
 
-### RFC 7807-Compliant ProblemDetails
+---
 
-When `UseProblemDetails` is set to `true`, the error response follows this format:
-```json
-{
-  "type": "https://httpstatuses.com/500",
-  "title": "Internal Server Error",
-  "status": 500,
-  "detail": "An unexpected error occurred.",
-  "instance": "/api/sample/test-error"
-}
-```
+## How to contribute?
 
-## Best Practices
+This project is open source and welcomes contributions! Please see our [CONTRIBUTING](https://github.com/bugzyGeek/AspNetCoreErrorKit/blob/main/CONTRIBUTING.md) file for guidelines.
 
-- Use global middleware for handling unhandled exceptions.
-- Apply `ErrorResponseFilterAttribute` for action-specific overrides.
-- Ensure proper configuration of the `ErrorHandlingOptions` section.
-- Test custom error code generators and logging logic extensively.
-- Avoid leaking sensitive information in production by disabling detailed errors.
-
-## Contributions
-
-Contributions are welcome! Feel free to open issues or submit pull requests.
+---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see our [LICENSE](https://github.com/bugzyGeek/AspNetCoreErrorKit/blob/main/LICENSE) file for details.
